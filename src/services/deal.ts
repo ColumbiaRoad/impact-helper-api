@@ -26,36 +26,34 @@ const dealPipeline = async (objectId: number, dealname: string) => {
     return;
   }
 
-  for (let i = 0; i < companyIds.length; i++) {
-    const companyId = companyIds[i];
-    const company = await getCompany(companyId);
+  const companyId = companyIds.find((x) => typeof x !== undefined) as string;
+  const company = await getCompany(companyId);
 
-    if (!company) {
-      await postErrorMessage(`No HubSpot Company found for id ${companyId}`);
-      continue;
-    }
+  if (!company) {
+    await postErrorMessage(`No HubSpot Company found for id ${companyId}`);
+    return;
+  }
 
-    const uprightId = getUprightId(company);
+  const uprightId = getUprightId(company);
 
-    if (!uprightId) {
-      await postErrorMessage(`No VATIN/ISIN assigned to ${company.name}`);
-      continue;
-    }
+  if (!uprightId) {
+    await postErrorMessage(`No VATIN/ISIN assigned to ${company.name}`);
+    return;
+  }
 
-    const profile = await getProfile(uprightId);
+  const profile = await getProfile(uprightId);
 
-    if (!profile) {
-      await postErrorMessage(`No Upright profile found for ${company.name}`);
-      continue;
-    }
+  if (!profile) {
+    await postErrorMessage(`No Upright profile found for ${company.name}`);
+    return;
+  }
 
-    const posted = await uploadImage(profile, company.name);
+  const posted = await uploadImage(profile, company.name);
 
-    if (!posted) {
-      await postErrorMessage(
-        `Uploading the profile to Slack failed for ${company.name}`
-      );
-    }
+  if (!posted) {
+    await postErrorMessage(
+      `Uploading the profile to Slack failed for ${company.name}`
+    );
   }
 };
 
