@@ -55,7 +55,7 @@ const dealPipeline = async (objectId: number, dealname: string) => {
       `Uploading the profile to Slack failed for ${company.name}`
     );
   }
-}
+};
 
 export { getDeals, postDeal };
 
