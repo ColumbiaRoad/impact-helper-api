@@ -2,7 +2,7 @@
 
 import Hapi from "@hapi/hapi";
 import Joi from "joi";
-import { getDeals, getDealPNG, postDeal } from "../services/deal";
+import { getDeals, postDealPNG, postDeal } from "../services/deal";
 
 const deals = {
   name: "routes/deals",
@@ -32,7 +32,7 @@ const deals = {
     server.route({
       method: "POST",
       path: "/dealPNG",
-      handler: getDealPNG,
+      handler: postDealPNG,
       options: {
         validate: {
           payload: Joi.object({

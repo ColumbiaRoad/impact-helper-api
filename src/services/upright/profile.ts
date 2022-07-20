@@ -1,8 +1,8 @@
 import axios from "axios";
 import config from "../../config";
-import { UprightId, UprightResponse } from "../../../types";
+import { UprightResponse, GetProfileArgs } from "../../../types";
 
-const getProfile = async (uprightId: UprightId) => {
+const getProfile = async ({ uprightId, responseType }: GetProfileArgs) => {
   const route = `${config.uprightApiRoot}/profile`;
   try {
     const response: UprightResponse = await axios.get(route, {
@@ -13,7 +13,7 @@ const getProfile = async (uprightId: UprightId) => {
       headers: {
         Authorization: config.uprightApiToken || false,
       },
-      responseType: "arraybuffer", // hat tip to https://stackoverflow.com/a/44058739
+      responseType,
     });
     return response.data;
   } catch (error) {

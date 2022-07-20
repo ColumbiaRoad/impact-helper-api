@@ -3,7 +3,7 @@ import { getDealCompanies } from "./hubspot/deal";
 import { getCompany } from "./hubspot/company";
 import { getProfile } from "./upright/profile";
 import { uploadImage, postMessage } from "./slack";
-import { DealPayload, Company, UprightId } from "../../types";
+import { DealPayload, Company, UprightId, GetProfileArgs } from "../../types";
 import config from "../config";
 
 const getDeals = async (_request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
@@ -18,7 +18,7 @@ const postDeal = async (request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
   return "ok";
 };
 
-const getDealPNG = async (request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
+const postDealPNG = async (request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
   const payload = request.payload as DealPayload;
   const objectId = payload.objectId || NaN;
   const dealname = payload.properties?.dealname?.value || "";
@@ -53,7 +53,11 @@ const dealPipeline = async (
       continue;
     }
 
-    const profile = await getProfile(uprightId);
+    const profileArgs: GetProfileArgs = { uprightId };
+    if (!slack) {
+      profileArgs.responseType = "stream";
+    }
+    const profile = await getProfile(profileArgs);
 
     if (!profile) {
       await sendError(`No Upright profile found for ${company.name}`, slack);
@@ -76,7 +80,7 @@ const dealPipeline = async (
   return null;
 };
 
-export { getDeals, postDeal, getDealPNG };
+export { getDeals, postDeal, postDealPNG };
 
 const getUprightId = (company: Company): UprightId | null => {
   if (company.vatin) {
