@@ -14,16 +14,27 @@ const postDeal = async (request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
   const payload = request.payload as DealPayload;
   const objectId = payload.objectId || NaN;
   const dealname = payload.properties?.dealname?.value || "";
-  dealPipeline(objectId, dealname);
+  dealPipeline(objectId, dealname, true);
   return "ok";
 };
 
-const dealPipeline = async (objectId: number, dealname: string) => {
+const getDealPNG = async (request: Hapi.Request, _h: Hapi.ResponseToolkit) => {
+  const payload = request.payload as DealPayload;
+  const objectId = payload.objectId || NaN;
+  const dealname = payload.properties?.dealname?.value || "";
+  return await dealPipeline(objectId, dealname, false);
+};
+
+const dealPipeline = async (
+  objectId: number,
+  dealname: string,
+  slack: boolean
+) => {
   const companyIds = await getDealCompanies(objectId);
 
   if (!companyIds || companyIds.length === 0) {
-    await postErrorMessage(`Deal ${dealname} has no associated companies`);
-    return;
+    await sendError(`Deal ${dealname} has no associated companies`, slack);
+    return null;
   }
 
   for (let i = 0; i < companyIds.length; i++) {
@@ -31,35 +42,41 @@ const dealPipeline = async (objectId: number, dealname: string) => {
     const company = await getCompany(companyId);
 
     if (!company) {
-      await postErrorMessage(`No HubSpot Company found for id ${companyId}`);
+      await sendError(`No HubSpot Company found for id ${companyId}`, slack);
       continue;
     }
 
     const uprightId = getUprightId(company);
 
     if (!uprightId) {
-      await postErrorMessage(`No VATIN/ISIN assigned to ${company.name}`);
+      await sendError(`No VATIN/ISIN assigned to ${company.name}`, slack);
       continue;
     }
 
     const profile = await getProfile(uprightId);
 
     if (!profile) {
-      await postErrorMessage(`No Upright profile found for ${company.name}`);
+      await sendError(`No Upright profile found for ${company.name}`, slack);
       continue;
     }
 
-    const posted = await uploadImage(profile, company.name);
+    if (slack) {
+      const posted = await uploadImage(profile, company.name);
 
-    if (!posted) {
-      await postErrorMessage(
-        `Uploading the profile to Slack failed for ${company.name}`
-      );
+      if (!posted) {
+        sendError(
+          `Uploading the profile to Slack failed for ${company.name}`,
+          slack
+        );
+      }
     }
+
+    if (!slack && profile) return profile;
   }
+  return null;
 };
 
-export { getDeals, postDeal };
+export { getDeals, postDeal, getDealPNG };
 
 const getUprightId = (company: Company): UprightId | null => {
   if (company.vatin) {
@@ -70,6 +87,10 @@ const getUprightId = (company: Company): UprightId | null => {
     return null;
   }
 };
+
+async function sendError(message: string, slack: boolean) {
+  return slack ? await postErrorMessage(message) : console.log(message);
+}
 
 const postErrorMessage = async (text: string) => {
   const channel = config.slackErrorChannel;
